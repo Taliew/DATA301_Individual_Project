@@ -42,9 +42,11 @@ header-includes:
   - \setlength{\parindent}{0pt}
   - \setlength{\parskip}{1ex plus 0.5ex minus 0.2ex}
 ---
+<!-- Executive Summary -->
 
 \newpage 
 # Background & Data
+
 
 <!-- Research Context  -->
 ## Psychiatric Drug Utilisation Context in New Zealand
@@ -67,17 +69,19 @@ These all have implications for health service planning and the results could su
 
 <!-- Research Question --> 
 ## Research Objectives 
-The primary objective of this report is explore the psychiatric drug utilisation and compare it across the former DHBs using dispensing data from the Pharmaceutical Collection combined with DHB Population Projection Profiles. 
+The primary objective of this report is to explore psychiatric drug utilisation and compare it across the former DHBs using dispensing data from the Pharmaceutical Collection combined with DHB Population Projection Profiles. 
 
-The secondary objective is to explore demographic patterns at the DHB level that may help explain observed variation in psychiatric drug utilitisation  districts. 
+The secondary objective is to explore demographic patterns and deprivation at the DHB level that may help explain observed variation in psychiatric drug utilitisation between districts. 
 
 This exploration is purely descriptive in nature, identifying associations between psychiatric drug utilisation and DHB demographics, it cannot and does not establish causality. 
 
 ## Datasets and Sources 
-Our group worked with two datasets: 
+Four datasets were used for this analysis: 
 
 - Pharmaceutical Collections data, sourced from Health New Zealand -- Te Whatu Ora
 - DHB population profiles 2020 -- 2030 data, sourced from Te Pou 
+- Socioeconomic Deprivation Indexes, sourced from Otago University 
+- DHB boundary geospatial data, sourced from Statistics New Zealand
 
 The Pharmaceutical Collections data contains summary data on medications that were dispensed in community pharmacies (i.e., excluding hospitals) and were funded by the New Zealand government. This is provided as a publicly accessible downloadable csv file. This data contained 24,876 observations across 8 variables [@healthnz2025pharma]. 
 
@@ -89,8 +93,14 @@ The DHB Demographic Profiles data exists only in PDF format with each demographi
 
 The Demographic Profiles data was then merged with the Pharmaceutical Data by matching on distinct district name and year combinations. The 20 district names were slightly different between the two data sources and were manually updated to match each other, prior to the merge (e.g., the Demographic Profiles data contained macrons, while the Pharmaceutical Data did not).
 
+The Socioeconomic Deprivation Indexes is 2018 data sourced from Otago University which combines nine variables from the 2018 census reflecting eight dimensions of deprivation. This dataset was used as it contains breakdowns for the former DHB regions. This is a downloadable Excel file, which was converted to a CSV format [@nz_dep].  
+
+The Socioeconomic Deprivation Indexes were then merged with Pharmaceutical and Demographic Profiles data, one district required formatting prior to merging (ampersand for Capital & Coast). 
+DHB boundary geospatial data was sourced from Statistics New Zealand of the District Health Board 2015. This was exported as a GeoPackage / SQLite file format. 
+
+
 ## Dataset Structure and Data Definitions 
-Key variables are listed according to originating dataset, with their variable types. 
+Key variables are listed according to the originating dataset, with their variable types. 
 
 **Pharmaceutical Data** 
 
@@ -104,14 +114,18 @@ Key variables are listed according to originating dataset, with their variable t
 - Age group population (numeric)
 - Ethnic group population (numeric)
 
+**Socioeconomic Deprivation Indexes**
+- NZDep2018_Score (numeric). 
+
 **Merged data (Pharmaceutical Data + DHB Population Profiles):**
 
 - Drug utilisation per 1,000 people (numeric) 
 
 ### Data Definitions: 
 
-- Therapeutic Group 2 is a grouping based on the New Zealand Pharmaceutical Schedule, which classifies medications  into groups according to the organ or system on which it acts and/or its therapeutic/chemical properties [@healthnz2025pharmaTech].
+- Therapeutic Group 2 is a grouping based on the New Zealand Pharmaceutical Schedule, which classifies medications into groups according to the organ or system on which it acts and/or its therapeutic/chemical properties [@healthnz2025pharmaTech].
 - Districts are defined as the former District Health Boards (DHBs). The DHBs were former geographically-defined administrative regions responsible for the provision of health and disability services [@moh2020pmssNoticeReview]. The DHBs were disbanded on the 30 June 2022, but are still used for reporting purposes [@healthnzsystemchange]. The former DHB districts will be referred to as districts throughout this report [@healthnz2025pharmaTech].  
+- NZDep2018_Score is the first principal component score across the nine variables from the census which provide eight dimensions of deprivation [@nz_dep]. 
 
 The Pharmaceutical Data is raw operational data, however our group was interested in using this data to provide information about drug utilisation. Merging with the DHB Population Profiles, which provided the projected populations of each district, allowed us to create a **drug utilisation** variable. 
 
@@ -258,7 +272,7 @@ knitr::include_graphics("figures/ethnicity_plot.pdf")
 Figure \@ref(fig:include-ethnicity-plot) shows the proportion of ethnicities within each district. Again, the proportions are calculated by taking a 5 year average of each district’s population within each ethnicity group. The graph is ordered by Māori population proportion, with Tairawhiti by far having the highest proportion of Māori people, and Auckland having the lowest proportion of Māori people. Auckland, Counties Manukau, and Waitemata have the highest proportion of Asian people. Pasifika population proportion is small in most districts; however it is much larger in Hutt Valley, Capital and Coast, Waitemata, and Auckland, which all have around a 5-10% Pasifika population. Counties Manukau has the largest Pasifika population proportion at around 20%.
 
 
-Preliminary Analysis Conclusions: 
+Conclusions and Recommendations 
 
 - Wairarapa district has some of the highest psychiatric drug utilisation, as well as also having the highest proportion of 65+ year olds. 
 - Counties Manukau has some of the lowest psychiatric drug utilisation, and has one of the smallest 65+ population proportions. Additionally, Counties Manukau has large Pasifika and Asian population proportions. 
