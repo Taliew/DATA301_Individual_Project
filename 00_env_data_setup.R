@@ -9,7 +9,7 @@ if(!require(pacman)){
 }
 
 # load required packages, installs if not available 
-pacman::p_load(tidyverse, janitor, curl)
+pacman::p_load(tidyverse, janitor, curl, googledrive, lme4, sf, psych)
 
 # get directory
 app_dir <- if (interactive() && rstudioapi::isAvailable()) {
@@ -35,6 +35,8 @@ ASIAN_POP_FILE_ID <- "1yjtIvw4h_nEy1gI0waB639vr4IJWwAr5"
 ADULT_POP_FILE_ID <- "1CCy4yvNRTGMpw4a-strI1QReU0jJCeSW"
 CHILD_POP_FILE_ID <- "1tkcCOAk5yCDsbIc6jiqAPOWbHbJKbg3M"
 OLD_ADULT_POP_FILE_ID <- "1gI-hIhCoAO8eVdCDEY9Zvhu6cVLZ4_cn"
+DEP_FILE_ID <- "15DVhdQm7pIoad39fio2ExscwW4k71jt0"
+
 
 # medications to consider 
 MEDS_REL_FILE_ID <- "1M1SUcwkpUUWcY7WVeesjuOvsK4U_NLuE"
@@ -114,4 +116,114 @@ tg2_data_merged <- left_join(tg2_data_dispensings_recoded, total_pop %>% rename(
 # clean out the extra row, add prevalence column
 tg2 <- tg2_data_merged %>% 
   filter(!if_any(everything(), is.na)) %>%
-  mutate(prevalence = num_ppl/total_population)
+  mutate(utilisation = num_ppl/total_population)
+
+###############################################################################
+# DEPRIVATION DATA IMPORT AND MERGES
+###############################################################################
+
+drive_auth(cache = FALSE, email = "vaughannaru@gmail.com")
+
+# Then try again
+temp <- tempfile(fileext = ".csv")
+drive_download(as_id(DEP_FILE_ID), path = temp, overwrite = TRUE)
+
+dep_data <- read_csv(temp)
+
+dep_data_rel <- dep_data %>% select(NZDep2018, NZDep2018_Score, DHB_2018_code, DHB_2018_name)
+
+distinct_dhb <- dep_data_rel %>% distinct(DHB_2018_name)
+
+distinct_district <- tg2 %>% distinct(district)
+
+# checking that names are in correct format / shared between both datasets.. 
+flag_shared_district <- distinct_dhb %>% mutate(flag_included = case_when(
+  DHB_2018_name %in% distinct_district$district ~ TRUE))
+
+
+# Capital and Coast needs to be standardised.. 
+dep_data_rel_clean <- dep_data_rel %>% mutate(DHB_2018_name = case_when(
+  DHB_2018_name == "Capital and Coast" ~ "Capital & Coast",
+  TRUE ~ DHB_2018_name
+))
+
+# filter out the unrelevant data.. 
+dep_data_rel_no_area_out <- dep_data_rel_clean %>% filter(DHB_2018_name != "Area Outside District Health Board")
+
+deprivation_data <- dep_data_rel_no_area_out %>% group_by(DHB_2018_name) %>%
+  summarise(average_deprivation = mean(NZDep2018, na.rm = TRUE))
+
+deprivation_data$district <- deprivation_data$DHB_2018_name
+
+deprivation_data <- deprivation_data %>% select(-DHB_2018_name)
+
+deprivation_tg2 <- inner_join(deprivation_data, tg2)
+
+
+###############################################################################
+# FURTHER PREPROCESSING
+###############################################################################
+
+# turn populations into percentages
+deprivation_tg2_total_pop <- deprivation_tg2 %>% 
+  mutate(
+    pasifika_pop_pct = pasifika_population/total_population, 
+    other_pop_pct = other_population/total_population, 
+    maori_pop_pct = maori_population/total_population, 
+    asian_pop_pct = asian_population/total_population, 
+    child_pop_pct = child_population/total_population,
+    adult_pop_pct = adult_population/total_population, 
+    old_adult_pop_pct = old_adult_population/total_population)
+
+STATS_KEY <- read_file("api_key.txt")
+
+STATS_JSON_LINK <- "https://datafinder.stats.govt.nz//layer/105268-health-district-health-board-2022-generalised/json"
+JSON_LAYER_PARAM <- "&layer=87883&x=[x]&y=[y]&max_results=3&radius=10000&geometry=true&with_field_names=true"
+# key=[api_token]
+
+nz_dhb <- st_read("district-health-board-2015.gpkg")
+
+unique(deprivation_tg2$district)
+unique(nz_dhb$DHB2015_Name)
+nz_dhb$DHB2015_Name
+
+# checking that names are in correct format / shared between both datasets.. 
+# flag_shared_district <- nz_dhb %>% mutate(flag_included = case_when(
+#   DHB2015_Name %in% deprivation_tg2$district ~ TRUE))
+
+# Capital and Coast needs to be standardised.. 
+nz_dhb_clean <- nz_dhb %>% mutate(DHB2015_Name = case_when(
+  DHB2015_Name == "Capital and Coast" ~ "Capital & Coast",
+  TRUE ~ DHB2015_Name
+))
+
+nz_dhb_clean$district <- nz_dhb_clean$DHB2015_Name
+nz_dhb_clean <- nz_dhb_clean %>% select(-DHB2015_Name)
+
+nz_dhb_dep <- full_join(nz_dhb_clean, deprivation_data)
+
+# demo code for average deprivation greyscale map
+# ggplot(nz_dhb_dep) +
+#   geom_sf(aes(fill = average_deprivation), colour = "white", size = 0.2) +
+#   scale_fill_gradient(
+#     low = "white",
+#     high = "black",
+#     name = "Average deprivation"
+#   ) +
+#   labs(
+#     title = "Average Deprivation by District Health Board (NZ)",
+#     caption = "Source: Stats NZ, NZDep2018"
+#   ) +
+#   theme_minimal() +
+#   theme(
+#     legend.position = "right",
+#     plot.title = element_text(face = "bold", size = 14)
+#   )
+# demo code to plot it / check if it's working 
+# ggplot(nz_dhb) +
+#   geom_sf(fill = "white", colour = "black", size = 0.3) +
+#   theme_minimal() +
+#   labs(
+#     title = "New Zealand District Health Boards (2022)",
+#     caption = "Source: Stats NZ, Te Whatu Ora"
+#   )
