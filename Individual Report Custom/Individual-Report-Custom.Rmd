@@ -1,0 +1,442 @@
+---
+title: How does subsidised pharmacy-dispensed psychiatric medication drug utilitisation vary across former District Health Board districts, and how do these patterns relate to District Health Board demographics and deprivation?
+author:
+  - "Naruebet Vaughan"
+  - "Adele D’Souza-Monie"
+  - "Connor Moy"
+date: "`r Sys.Date()`"
+linenumbers: false
+numbersections: true
+toc: false
+bibliography: references.bib
+csl: apa.csl  
+# biblio-style: elsarticle-harv # author year style for natbib - use 'elsarticle-num' or 'elsarticle-num-names' for numbered scheme
+classoption: twocolumn # remove authoryear is not using
+# `elsarticle-harv`
+# Use a CSL with `citation_package = "default"`
+# csl: https://www.zotero.org/styles/elsevier-harvard
+output: 
+  bookdown::pdf_document2:
+    latex_engine: xelatex
+    fig_caption: yes
+    extra_dependencies: ["float"]
+header-includes:
+  - \usepackage{titlesec}
+  - \titlespacing*{\section}{0pt}{*0.8}{*0.2}
+---
+# Executive Summary
+
+# Background & Data
+
+<!-- Research Context  -->
+## Psychiatric Drug Utilisation in New Zealand 
+Drug utilisation in New Zealand is known to suffer from inequities, including by ethnic group and geography [@pharmac_2019; @carswell_equitable_access_2018]. 
+
+Previous research in New Zealand has found differential drug utilisation among certain medications between District Health Boards (DHBs). This includes studies by the @hqsc2021atlasmental with 2008 Pharmaceutical Collection data, and @exeter_antidepressant_2009 with antidepressant dispensing using prescriptions data. 
+
+A review of the literature found that no study has investigated whether there is variation in drug utilitisation between DHBs for psychiatric medications in Pharmaceutical Collection data. 
+
+An exploration of the Pharmaceutical Collection data could provide insights into the patterns of psychiatric drug utilisation across the former DHBs. Identifying potential differences in drug utilisation may help highlight potential inequities in treatment access and prompt further investigation into contributing factors, such as: 
+
+- Geographic variation in prescribing practices
+- Service availability 
+- Barriers to treatment access
+
+These all have implications for health service planning and the results could support more equitable policy development to inform resource allocation and targeted interventions to reduce disparities. 
+
+
+<!-- Research Question --> 
+## Research Objectives 
+The primary objective of this report is to explore subsidised psychiatric drug utilisation in New Zealand pharmacies and compare it across the former DHBs using dispensing data from the Pharmaceutical Collection combined with DHB Population Projection Profiles. 
+
+The secondary objective is to explore demographic patterns and deprivation at the DHB level that may help explain observed variation in subsidised psychiatric drug utilitisation in New Zealand pharmacies between districts. 
+
+This exploration is purely descriptive in nature, identifying associations between subsidised psychiatric drug utilisation and DHB demographics; it cannot and does not establish causality. 
+
+## Datasets and Sources 
+Four datasets were used for this analysis: 
+
+- Pharmaceutical Collections data, sourced from Health New Zealand -- Te Whatu Ora
+- DHB population profiles 2020--2030 data, sourced from Te Pou 
+- Socioeconomic Deprivation Indexes, sourced from Otago University 
+- DHB boundary geospatial data, sourced from Statistics New Zealand
+
+The Pharmaceutical Collections data contains summary data on medications that were dispensed in community pharmacies (i.e., excluding hospitals) and were funded by the New Zealand government. This is provided as a publicly accessible downloadable csv file. This data contained 24,876 observations across 8 variables [@healthnz2025pharma]. 
+
+The Pharmaceutical Data was filtered to include only the distinct number of people dispensed any medications in a year for the 6 psychiatric medications of interest. This resulted in a final dataset with 600 rows which had no missing values.
+
+The DHB Population Profiles is sourced from Te Pou. It is 10 years of population projections based on information provided by the Ministry of Health to Te Pou, the national workforce centre for addiction and mental health in New Zealand. The data is based on projections from Statistics New Zealand for the Ministry of Health. This is a downloadable PDF file with relevant data provided in tables broken down by ethnic group and age group [@tepou2020dhbprofiles]. 
+
+The DHB Demographic Profiles data exists only in PDF format with each demographic variable for ethnic group and age as a table which had to be extracted to a CSV format. The data is fully complete and was checked for obvious errors during the manual extraction.
+
+The Demographic Profiles data was then merged with the Pharmaceutical Data by matching on distinct district name and year combinations. The 20 district names were slightly different between the two data sources and were manually updated to match each other, prior to the merge (e.g., the Demographic Profiles data contained macrons, while the Pharmaceutical Data did not).
+
+The Socioeconomic Deprivation Indexes is 2018 data sourced from Otago University which combines nine variables from the 2018 census reflecting eight dimensions of deprivation. This dataset was used as it contains breakdowns for the former DHB regions. This is a downloadable Excel file, which was converted to a CSV format [@nz_dep].  
+
+The Socioeconomic Deprivation Indexes were then merged with Pharmaceutical and Demographic Profiles data, one district required formatting prior to merging (ampersand for Capital & Coast). 
+DHB boundary geospatial data was sourced from Statistics New Zealand of the District Health Board 2015. This was exported as a GeoPackage / SQLite file format. 
+
+
+## Dataset Structure and Data Definitions 
+Key variables are listed according to the originating dataset, with their variable types. 
+
+**Pharmaceutical Data** 
+
+- Therapeutic Group 2 (categorical)
+- District (categorical)
+- Year (numeric) 
+- Distinct number of people dispensed any medications in a year (numeric)
+
+**DHB Population Profiles:**
+
+- Age group population (numeric)
+- Ethnic group population (numeric)
+
+**Socioeconomic Deprivation Indexes**
+
+- NZDep2018_Score (numeric). 
+
+**Merged data (Pharmaceutical Data + DHB Population Profiles):**
+
+- Drug utilisation per 1,000 people (numeric) 
+
+### Data Definitions: 
+
+Therapeutic Group 2 is a grouping based on the New Zealand Pharmaceutical Schedule, which classifies medications into groups according to the organ or system on which it acts and/or its therapeutic/chemical properties [@healthnz2025pharmaTech].
+
+Districts are defined as the former District Health Boards (DHBs). The DHBs were former geographically-defined administrative regions responsible for the provision of health and disability services [@moh2020pmssNoticeReview]. The DHBs were disbanded on the 30 June 2022, but are still used for reporting purposes [@healthnzsystemchange]. The former DHB districts will be referred to as districts throughout this report [@healthnz2025pharmaTech].
+
+NZDep2018_Score is the first principal component score across the nine variables from the census which provide eight dimensions of deprivation [@nz_dep]. 
+
+The Pharmaceutical Data is raw operational data, however our group was interested in using this data to provide information about drug utilisation. Merging with the DHB Population Profiles, which provided the projected populations of each district, allowed us to create a **drug utilisation** variable. 
+
+We used period prevalence to measure psychiatric drug utilisation. The period prevalence is defined as the number of new and existing drug users (numerator) divided by the population (denominator) over a specified period (a year). Specifically, in our context: 
+
+\[
+\textbf{Prevalence} =
+\frac{
+\begin{array}{c}
+\text{Distinct number of people dispensed} \\
+\text{medications in a year}
+\end{array}
+}{
+\text{District population}
+}
+\]
+
+
+
+This can be further expressed as a rate per 1,000 people to improve interpretability [@cdc_lesson].
+$$
+\mathbf{Drug \ utilisation \  per \ 1,000 \ people} = \text{Prevalence} * 1,000
+$$
+
+The creation of this variable allows us to compare drug utilisation across districts. 
+
+This variable can be interpreted as: the number of new and existing individuals (prevalence) dispensed a psychiatric medication within a year period (period), per 1,000 people. 
+
+Note that these individuals were considered distinct within each therapeutic group. In theory, an individual can be dispensed medications across more than one therapeutic group. Individuals should not be considered distinct across more than one therapeutic group. 
+
+## Treatment Scope 
+We narrowed our scope to psychiatric medications in the Pharmaceutical Data, specifically: 
+
+- Antidepressants
+- Antipsychotics
+- Anxiolytics
+- Sedatives and Hypnotics
+- Stimulants/ADHD Treatments
+- Treatments for Substance Dependence
+
+# Ethics, Privacy and Security
+
+<!-- like discuss that there were small groups for medications, that were aggregated up already to a <6 group - but we didn't use such small groups anyway with our smallest group being x and made sure it wasn't too small to be identifiable based on the populations in the dhb or something --> 
+
+
+
+## Ethical Considerations 
+
+### Stigmatisation
+Reporting differential drug utilisation between districts may create or reinforce stigma, or portray certain populations in a negative light (e.g., high drug utilisation of psychiatric medications). Care was taken to ensure all language is neutral, based on the findings alone, and does not blame any specific group. This also adheres to @MaoriDataSovereignty where the language used in our report adhered to Manaakitanga – Reciprocity, that the use and interpretation of our data upheld dignity of Māori communities, groups and individuals to avoid stigmatising or blaming Māori communities. 
+
+### Collective benefit 
+Given more time, we could have also consulted Māori to determine how analyses could have been to benefit Māori communities, this adheres to Kotahitanga – Collective benefit. This is particularly important as research indicates that Māori have underutilisation in drug utilisation, despite higher morbidity [@pharmac_2019]. 
+
+### Data provenance
+Given more time we should also have documentation regarding data sources. This is important for data integrity purposes, however this also adheres to ethical considerations of the Māori Data Sovereignty Principles where all data has a whakapapa (genealogy), and documentation should ensure that all the data sources are appropriately documented (e.g, documentation on when the Pharmaceutical Data was downloaded, who downloaded it, etc.)[@MaoriDataSovereignty].
+
+## Privacy Concerns 
+
+### Reidentification
+One of the key privacy considerations with our analysis and report was to ensure that none of the outputs would allow re-identification of individuals. The data used from the Pharmaceutical Collections data had already applied anonymisation of data with smaller drug utilisation groups aggregated into a minimum bin size of “< 6 people”. Our data’s smallest drug utilisation group contained 185 people (The number of people dispensed stimulants/ADHD treatments in the West Coast district in 2020) and outputs were checked to ensure they could not be used to reasonably expected to identify individuals. 
+
+## Security considerations 
+We evaluated our security concerns against Confidentiality, Integrity and Accessibility, the “CIA” Triad and also authentication, authorisation, and non-reputiation. We evaluated our platforms to mitigate our security concerns.
+
+### Input data security 
+Google Drive was chosen to store Pharmaceutical Data and DHB Population Profiles data. Google Drive was selected as a good solution to address CIA triad concerns. Confidentiality was key to ensure that non-authorised users could not access and modify data used for the analysis, thereby supporting the integrity of the data and our results by preventing unauthorised changes. Integrity was further preserved by restricting authorised users from making modifications – intentionally or by accident – as data files were stored as read-only. Audit logs were maintained for data files to support non-repudiation and to verify the authenticity of the uploader. In addition, all data was encrypted both in-transit and at-rest to further prevent unauthorised access and modification of the data [@googleDriveSecurity]. Accessibility of the data was also key to support group collaboration, which made a cloud solution ideal. Additionally, it was important for all team members to have one source of truth for the data to support the integrity of our results. The importance of this was highlighted when Pharmaceutical Data was updated by Health New Zealand and uploaded into Google Drive where all team members were able to source the new, updated data – instead of relying on local copies. 
+
+### Analysis data security
+The CIA triad was also applied to evaluate solutions for storing and managing analysis files. GitHub was selected because it ensured confidentiality by restricting access to only authenticated and authorised users. Integrity was maintained with analysis files encrypted-in-transit and at-rest, preventing unauthorised modification of files.  [@githubEnterpriseCloudFAQ]. Availability was maintained with GitHub’s cloud services, allowing all users to access the git repository from any location. 
+
+# Exploratory Data Analysis
+Based on the research objectives, an exploratory data analysis was conducted to produce visualisations that compare differences in drug utilisation between districts for the psychiatric medications of interest (figures  \@ref(fig:include-antidepressants-prev) --\@ref(fig:include-treatments-for-substance-dependence-prev)). 
+
+Figures \@ref(fig:include-antidepressants-prev)--\@ref(fig:include-treatments-for-substance-dependence-prev) are comparative boxplots, with each boxplot in a figure representing annual drug utilisation data from the years 2020 to 2024. The median across the 5 years of data is used to order districts from lowest to highest drug utilisation for each medication.  
+
+Counties Manukau was found to have the lowest antidepressant drug utilisation, while the West Coast and Wairarapa had the highest antidepressant drug utilisation (Figure \@ref(fig:include-antidepressants-prev)). 
+
+```{r include-antidepressants-prev, fig.cap="Annual Antidepressant Drug Utilisation by District (2020-2024)", echo = FALSE}
+knitr::include_graphics("figures/antidepressant_plot.pdf")
+```
+
+Counties Manukau similarly had a much lower antipsychotic drug utilisation compared to other districts. South Canterbury, Whanganui, MidCentral, and the Wairarapa have the highest antipsychotic drug utilisation (Figure \@ref(fig:antipsychotics-prev)). 
+
+```{r antipsychotics-prev, fig.cap="Annual Antipsychotic Drug Utilisation by District (2020-2024)", echo = FALSE}
+knitr::include_graphics("figures/antipsychotics_plot.pdf")
+```
+
+Counties Manukau had a much lower anxiolytic drug utilisation, along with Lakes. Tairawhiti and South Canterbury also have low anxiolytic drug utilisation. Whanganui had the highest anxiolytic drug utilisation (Figure \@ref(fig:include-anxiolytics-prev)). 
+
+```{r include-anxiolytics-prev, fig.cap="Annual Anxiolytic Drug Utilisation by District (2020-2024)", echo = FALSE}
+knitr::include_graphics("figures/anxiolytics_plot.pdf")
+```
+Counties Manukau also has the lowest sedative and hypnotic drug utilisation. Whanganui has the highest sedative and hypnotic drug utilisation (Figure \@ref(fig:include-sedatives-and-hypnotics-prev)). 
+
+
+```{r include-sedatives-and-hypnotics-prev, fig.cap="Annual Sedative and Hypnotic Drug Utilisation by District (2020-2024)", echo = FALSE}
+knitr::include_graphics("figures/sedatives_and_hypnotics_plot.pdf")
+```
+
+Canterbury has the lowest stimulant/ADHD drug utilisation and Capital & Coast has the highest. 
+(Figure \@ref(fig:include-stimulants-adhd-treatments-prev)). 
+
+```{r include-stimulants-adhd-treatments-prev, fig.cap="Annual Stimulant/ADHD Drug Utilisation by District (2020-2024)", echo = FALSE}
+knitr::include_graphics("figures/stimulants_adhd_treatments_plot.pdf")
+```
+
+```{r include-treatments-for-substance-dependence-prev, fig.cap="Annual Treatment for Substance Dependence Drug Utilisation by District (2020-2024)", echo = FALSE}
+knitr::include_graphics("figures/treatments_for_substance_dependence_plot.pdf")
+```
+
+Figure \@ref(fig:include-treatments-for-substance-dependence-prev) shows treatment for substance dependence drug utilisation is lowest in Counties Manukau. The Wairarapa and Taranaki have the highest treatment for substance dependence drug utilisation. 
+
+Figures \@ref(fig:include-antidepressants-prev) --\@ref(fig:include-treatments-for-substance-dependence-prev) show that Counties Manukau consistently has the lowest psychiatric drug utilisation, with the exception of Stimulants/ADHD Treatments, though it still has low utilisation for that drug type. Lakes also has a consistently low psychiatric drug utilisation. South Canterbury has mid to high antidepressant and antipsychotic drug utilisation, but some of the highest utilisations of the other psychiatric drugs. Whanganui and the Wairarapa are consistently amongst the high psychiatric drug utilisation districts.
+
+- Wairarapa district has some of the highest psychiatric drug utilisation, as well as also having the highest proportion of 65+ year olds. 
+- Counties Manukau has some of the lowest psychiatric drug utilisation, and has one of the smallest 65+ population proportions. Additionally, Counties Manukau has large Pasifika and Asian population proportions. 
+
+## Detailed Analysis Results 
+
+Pair panel plots investigated whether there is a potential relationship between drug utilisation and deprivation, ethnic demography of a district, and age demography of a district, between psychiatric medication types. Analysis was performed on 2020 and 2024 data, with deprivation being based on 2018 census data, 2020 is the closest to the original assumptions. 2024 was investigated to determine whether associations also held up over time. 2024 figures are presented. 
+
+Analysis indicates that deprivation and psychiatric drug utilisation have different directional relationships dependent on psychiatric drug type.
+
+- Antidepressant drug utilisation was negatively correlated with average deprivation (-0.32). 
+- Antipsychotic drug utilisation was positively correlated with average deprivation (0.32). 
+- Anxiolytic drug utilisation was negatively correlated with average deprivation (-0.41). 
+- Sedatives and Hypnotics were negatively correlated with average deprivation (-0.19)
+- Stimulants-ADHD treatments were negatively correlated with average deprivation (-0.55)
+- Treatments for Substance Dependence is positively correlated with average deprivation, before becoming negatively correlated in 2024. 
+
+```{r, echo = FALSE}
+spearman_corr_meds_2020 <- readRDS("figures/tables/spearman_corr_meds_2020.rds")
+knitr::kable(
+  spearman_corr_meds_2020, booktabs = TRUE,
+  caption = "Spearman Correlation of Average Deprivation against Psychiatric Drug Utilisation in 2020"
+) 
+```
+
+```{r, echo = FALSE}
+spearman_corr_meds_2024 <- readRDS("figures/tables/spearman_corr_meds_2024.rds")
+knitr::kable(
+  spearman_corr_meds_2024, booktabs = TRUE,
+  caption = "Spearman Correlation of Average Deprivation against Psychiatric Drug Utilisation in 2024"
+) 
+```
+
+
+\newpage 
+\onecolumn
+
+Linear mixed effects model 
+
+```{r include-lme-model-summary, fig.cap = "Linear Mixed Effects Model Summary", echo = FALSE, message=FALSE, warning=FALSE}
+library(kableExtra)
+library(tidyverse)
+model_summary <- readRDS("figures/tables/summary_of_models.rds")
+# model_summary_2sf <- model_summary %>% mutate(across(where(is.numeric), ~ signif(., 2)))
+
+model_summary_2sf <- model_summary %>%
+  mutate(across(
+    everything(),
+    ~ {
+      val <- suppressWarnings(as.numeric(.))
+      ifelse(
+        is.na(val),
+        as.character(.),
+        sub("([.]\\d*?)0+$", "\\1",
+          sub("[.]0+$", "",
+            format(signif(val, 2), scientific = FALSE, trim = TRUE)
+          )
+        )
+      )
+    }
+  ))
+
+kbl(
+  model_summary_2sf,
+  booktabs = TRUE,
+  caption = "Linear Mixed-Effects Model Coefficients by Medication Type"
+) %>%
+  kable_styling(
+    latex_options = c("striped", "hold_position", "scale_down"),
+    font_size = 9
+  )
+```
+
+Potential bias 
+
+## Conclusions and Recommendations 
+Further extension of this analysis could include an Official Information Act request to Statistics New Zealand for the high and low population projections which were used for the DHB Population Profiles, this would allow sensitivity analyses to be performed on the robustness of the findings to changes in population projections. 
+
+More robust research can utilise Statistics New Zealand’s Integrated Data Infrastructure (IDI) to link individuals between Pharmaceutical Data, census data (which was used for deprivation measures) and ethnic and age demographic data. Analysis on this data can offer more robust associations using individual-level data, rather than correlative analyses at a district level. In particular, utilising IDI can investigate potential inequities among individuals being dispensed medications. This is comparison to the limitation of this study where potential inequities in individuals dispensed medications were analysed in relation to the districts they were dispensed medications in. 
+
+### Limitations of the Data: 
+
+Psychiatric drug utilisation estimates are based on dispensing data and indicate the number of unique individuals who received at least one dispensing in a year. These estimates should not be interpreted as condition-specific treatment rates (i.e., estimates for psychiatric conditions). Some medications may be prescribed for several conditions, or prescribed off-label, meaning that dispensing Therapeutic Group does not necessarily correspond to treatment for the medication’s primary or approved indication. 
+
+Psychiatric drug utilisation estimates were derived using the DHB Population Profiles as the population denominators. The Population Profiles were based on statistical projections rather than census-derived population counts, therefore there is uncertainty regarding the calculated rates. Observed differences in psychiatric drug utilisation between DHBs should be interpreted cautiously.
+
+Pharmacy, subsidised prescriptions only. All medications are limited to medications which were prescribed at a pharmacy and subsidised. Therefore, the data and subsequent analysis is limited to drug utilisation in the community that was subsidised (i.e., excludes hospital-based dispensing and non-subsidised medications). 
+
+Population-weighted 
+COVID period 
+
+\newpage
+# References
+
+<div id="refs"></div>
+
+\newpage
+# Appendices {-}
+# (APPENDIX) Appendix {-}
+
+
+## Figure \@ref(fig:include-age-plot): Age Composition of District Populations
+```{r include-age-plot, fig.cap="Age Composition of District Populations", echo = FALSE}
+knitr::include_graphics("figures/age_plot.pdf")
+```
+\
+\
+\
+Ordered from highest to lowest proportion of 65+ year olds, figure \@ref(fig:include-age-plot) shows the proportions of each age group in each district. The Wairarapa has the highest proportion of 65+ year-olds, while Counties Manukau has the lowest proportion of 65+ year-olds. Also note that Auckland has the highest proportion of 20-64 year olds, and that Counties Manukau and Tairawhiti have a high proportion of 0-19 year-olds compared to other districts. The proportion of population is taken as an average of yearly proportions from 2020 to 2024 to minimise the effect of abnormal years. 
+
+## Figure \@ref(fig:include-ethnicity-plot): Ethnic Composition of District Populations
+
+```{r include-ethnicity-plot, fig.cap="Ethnic Composition of District Populations", echo = FALSE}
+knitr::include_graphics("figures/ethnicity_plot.pdf")
+```
+
+Figure \@ref(fig:include-ethnicity-plot) shows the proportion of ethnicities within each district. Again, the proportions are calculated by taking a 5 year average of each district’s population within each ethnicity group. The graph is ordered by Māori population proportion, with Tairawhiti by far having the highest proportion of Māori people, and Auckland having the lowest proportion of Māori people. Auckland, Counties Manukau, and Waitemata have the highest proportion of Asian people. Pasifika population proportion is small in most districts; however it is much larger in Hutt Valley, Capital and Coast, Waitemata, and Auckland, which all have around a 5-10% Pasifika population. Counties Manukau has the largest Pasifika population proportion at around 20%.
+
+
+```{r include-antidepressants-2024, fig.cap="Antidepressant Drug Utilisation against Average Deprivation and District Demographics", echo = FALSE}
+knitr::include_graphics("figures/pair_plot/2024Antidepressants.pdf")
+```
+
+```{r include-antipsychotics-2024, fig.cap="Antipsychotics Drug Utilisation against Average Deprivation and District Demographics", echo = FALSE}
+knitr::include_graphics("figures/pair_plot/2024Antipsychotics.pdf")
+```
+
+```{r include-anxiolytics-2024, fig.cap="Anxiolytics Drug Utilisation against Average Deprivation and District Demographics", echo = FALSE}
+knitr::include_graphics("figures/pair_plot/2024Anxiolytics.pdf")
+```
+
+```{r include-sedatives-and-hypnotics-2024, fig.cap="Sedatives and Hypnotics Drug Utilisation against Average Deprivation and District Demographics", echo = FALSE}
+knitr::include_graphics("figures/pair_plot/2024Sedatives and Hypnotics.pdf")
+```
+
+```{r include-stimulants-adhd-treatments-2024, fig.cap="Stimulants-ADHD treatments Drug Utilisation against Average Deprivation and District Demographics", echo = FALSE}
+knitr::include_graphics("figures/pair_plot/2024Stimulants-ADHD Treatments.pdf")
+```
+```{r include-treatment-substance-dependence-2024, fig.cap="Treatments for Substance Dependence Drug Utilisation against Average Deprivation and District Demographics", echo = FALSE}
+knitr::include_graphics("figures/pair_plot/2024Treatments for Substance Dependence.pdf")
+```
+
+```{r, fig.cap="Antidepressants Model Residuals Fitted Plot", echo = FALSE}
+knitr::include_graphics("figures/diagnostics/residuals_fitted_antidepressants.pdf")
+```
+
+```{r, fig.cap="Antidepressants Model Q-Q Plot", echo = FALSE}
+knitr::include_graphics("figures/diagnostics/qq_plot_antidepressants.pdf")
+```
+
+```{r, fig.cap="Antidepressants Model Scale-Location Plot", echo = FALSE}
+knitr::include_graphics("figures/diagnostics/scale_location_antidepressants.pdf")
+```
+
+```{r, fig.cap="Antipsychotics Model Residuals Fitted Plot", echo = FALSE}
+knitr::include_graphics("figures/diagnostics/residuals_fitted_antipsychotics.pdf")
+```
+
+```{r, fig.cap="Antipsychotics Model Q-Q Plot", echo = FALSE}
+knitr::include_graphics("figures/diagnostics/qq_plot_antipsychotics.pdf")
+```
+
+```{r, fig.cap="Antipsychotics Model Scale-Location Plot", echo = FALSE}
+knitr::include_graphics("figures/diagnostics/scale_location_antipsychotics.pdf")
+```
+
+```{r, fig.cap="Anxiolytics Model Residuals Fitted Plot", echo = FALSE}
+knitr::include_graphics("figures/diagnostics/residuals_fitted_anxiolytics.pdf")
+```
+
+```{r, fig.cap="Anxiolytics Model Q-Q Plot", echo = FALSE}
+knitr::include_graphics("figures/diagnostics/qq_plot_anxiolytics.pdf")
+```
+
+```{r, fig.cap="Anxiolytics Model Scale-Location Plot", echo = FALSE}
+knitr::include_graphics("figures/diagnostics/scale_location_anxiolytics.pdf")
+```
+
+```{r, fig.cap="Sedatives Hypnotics Model Residuals Fitted Plot", echo = FALSE}
+knitr::include_graphics("figures/diagnostics/residuals_fitted_sedatives hypnotics.pdf")
+```
+
+```{r, fig.cap="Sedatives Hypnotics Model Q-Q Plot", echo = FALSE}
+knitr::include_graphics("figures/diagnostics/qq_plot_sedatives hypnotics.pdf")
+```
+
+```{r, fig.cap="Sedatives Hypnotics Model Scale-Location Plot", echo = FALSE}
+knitr::include_graphics("figures/diagnostics/scale_location_sedatives hypnotics.pdf")
+```
+
+```{r, fig.cap="Stimulants ADHD treatment Model Residuals Fitted Plot", echo = FALSE}
+knitr::include_graphics("figures/diagnostics/residuals_fitted_stimulants adhd treatment.pdf")
+```
+
+```{r, fig.cap="Stimulants ADHD treatment Model Q-Q Plot", echo = FALSE}
+knitr::include_graphics("figures/diagnostics/qq_plot_stimulants adhd treatment.pdf")
+```
+
+```{r, fig.cap="Stimulants ADHD treatment Model Scale-Location Plot", echo = FALSE}
+knitr::include_graphics("figures/diagnostics/scale_location_stimulants adhd treatment.pdf")
+```
+
+```{r, fig.cap="Treatment Substance Dependence Model Residuals Fitted Plot", echo = FALSE}
+knitr::include_graphics("figures/diagnostics/residuals_fitted_treatment substance dependence.pdf")
+```
+
+```{r, fig.cap="Treatment Substance Dependence Model Q-Q Plot", echo = FALSE}
+knitr::include_graphics("figures/diagnostics/qq_plot_treatment substance dependence.pdf")
+```
+
+```{r, fig.cap="Treatment Substance Dependence Model Scale-Location Plot", echo = FALSE}
+knitr::include_graphics("figures/diagnostics/scale_location_treatment substance dependence.pdf")
+```
+
+
+
+
+
+
